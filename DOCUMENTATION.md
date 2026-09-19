@@ -151,6 +151,6 @@ cargo run --release -- --scene all --camera -4.4,2.3,3.2 --output alt.ppm
 The project includes four required 800x600 PPM outputs in `scenes/`:
 
 - `sphere.ppm`: a scene with a sphere
-- `cube_plane.ppm`: a flat plane and a cube with lower brightness
-- `all_objects.ppm`: one cube, one sphere, one cylinder, and one flat plane
-- `all_objects_alt_camera.ppm`: the same objects from another camera position
+- `cube-plane.ppm`: a flat plane and a cube with lower brightness
+- `all.ppm`: one cube, one sphere, one cylinder, and one flat plane
+- `all-alt.ppm`: the same objects from another camera position

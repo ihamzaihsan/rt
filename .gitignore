@@ -2,3 +2,8 @@
 *.exe
 *.pdb
 *.ppm
+!/scenes/
+!/scenes/sphere.ppm
+!/scenes/cube-plane.ppm
+!/scenes/all.ppm
+!/scenes/all-alt.ppm
