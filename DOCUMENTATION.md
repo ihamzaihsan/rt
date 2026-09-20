@@ -43,7 +43,7 @@ finds the closest object intersection, shades that point with ambient and
 diffuse light, checks whether another object blocks the light to create shadows,
 and optionally follows reflection rays for shiny surfaces.
 
-Objects are defined in `src/main.rs` with the `Object` enum. Every object owns a
+Objects are defined in `src/geometry.rs` with the `Object` enum. Every object owns a
 `Material`, which contains an RGB color in the `0.0..1.0` range and a
 reflectivity value.
 
