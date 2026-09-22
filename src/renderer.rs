@@ -17,13 +17,21 @@ pub(crate) fn trace_ray(ray: Ray, scene: &Scene, options: &RenderOptions, depth:
         return sky_color(ray.direction, scene.background);
     };
 
+    let normal = if ray.direction.dot(hit.normal) < 0.0 {
+        hit.normal
+    } else {
+        -hit.normal
+    };
     let mut color = hit.material.color * scene.ambient;
     for light in &scene.lights {
         let to_light = light.position - hit.point;
         let distance_to_light = to_light.length();
+        if distance_to_light < EPSILON {
+            continue;
+        }
         let light_dir = to_light / distance_to_light;
         let shadow_ray = Ray {
-            origin: hit.point + hit.normal * EPSILON,
+            origin: hit.point + normal * EPSILON,
             direction: light_dir,
         };
 
@@ -33,9 +41,9 @@ pub(crate) fn trace_ray(ray: Ray, scene: &Scene, options: &RenderOptions, depth:
             continue;
         }
 
-        let diffuse = hit.normal.dot(light_dir).max(0.0);
+        let diffuse = normal.dot(light_dir).max(0.0);
         let view_dir = -ray.direction;
-        let reflect_dir = (-light_dir).reflect(hit.normal).normalize();
+        let reflect_dir = (-light_dir).reflect(normal).normalize();
         let specular = view_dir.dot(reflect_dir).max(0.0).powf(48.0) * 0.35;
         let attenuation = 1.0 / (1.0 + 0.025 * distance_to_light * distance_to_light);
         let light_strength = light.brightness * attenuation;
@@ -46,8 +54,8 @@ pub(crate) fn trace_ray(ray: Ray, scene: &Scene, options: &RenderOptions, depth:
 
     if options.reflections && depth < options.max_depth && hit.material.reflectivity > 0.0 {
         let reflection_ray = Ray {
-            origin: hit.point + hit.normal * EPSILON,
-            direction: ray.direction.reflect(hit.normal).normalize(),
+            origin: hit.point + normal * EPSILON,
+            direction: ray.direction.reflect(normal).normalize(),
         };
         let reflected = trace_ray(reflection_ray, scene, options, depth + 1);
         color = color * (1.0 - hit.material.reflectivity) + reflected * hit.material.reflectivity;
@@ -90,5 +98,5 @@ pub(crate) fn render<W: Write>(
         }
     }
 
-    Ok(())
+    writer.flush()
 }

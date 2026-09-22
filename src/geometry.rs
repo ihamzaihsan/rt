@@ -1,5 +1,7 @@
 use crate::math::{Ray, Vec3};
+
 const EPSILON: f64 = 1.0e-4;
+
 #[derive(Clone, Copy)]
 pub(crate) struct Material {
     pub(crate) color: Vec3,
@@ -62,12 +64,7 @@ impl Object {
     }
 }
 
-pub(crate) fn intersect_sphere(
-    ray: Ray,
-    center: Vec3,
-    radius: f64,
-    material: Material,
-) -> Option<Hit> {
+fn intersect_sphere(ray: Ray, center: Vec3, radius: f64, material: Material) -> Option<Hit> {
     let oc = ray.origin - center;
     let a = ray.direction.dot(ray.direction);
     let b = 2.0 * oc.dot(ray.direction);
@@ -94,15 +91,10 @@ pub(crate) fn intersect_sphere(
     })
 }
 
-pub(crate) fn intersect_plane(
-    ray: Ray,
-    point: Vec3,
-    normal: Vec3,
-    material: Material,
-) -> Option<Hit> {
+fn intersect_plane(ray: Ray, point: Vec3, normal: Vec3, material: Material) -> Option<Hit> {
     let normal = normal.normalize();
     let denom = normal.dot(ray.direction);
-    if denom.abs() < EPSILON {
+    if denom.abs() < 1.0e-12 {
         return None;
     }
 
@@ -114,15 +106,16 @@ pub(crate) fn intersect_plane(
     Some(Hit {
         t,
         point: ray.at(t),
-        normal: if denom < 0.0 { normal } else { -normal },
+        normal,
         material,
     })
 }
 
-pub(crate) fn intersect_cube(ray: Ray, min: Vec3, max: Vec3, material: Material) -> Option<Hit> {
+fn intersect_cube(ray: Ray, min: Vec3, max: Vec3, material: Material) -> Option<Hit> {
     let mut t_min = -f64::INFINITY;
     let mut t_max = f64::INFINITY;
     let mut hit_normal = Vec3::ZERO;
+    let mut exit_normal = Vec3::ZERO;
 
     let axes = [
         (
@@ -152,7 +145,7 @@ pub(crate) fn intersect_cube(ray: Ray, min: Vec3, max: Vec3, material: Material)
     ];
 
     for (origin, direction, axis_min, axis_max, min_normal, max_normal) in axes {
-        if direction.abs() < EPSILON {
+        if direction.abs() < 1.0e-12 {
             if origin < axis_min || origin > axis_max {
                 return None;
             }
@@ -174,13 +167,20 @@ pub(crate) fn intersect_cube(ray: Ray, min: Vec3, max: Vec3, material: Material)
             t_min = t0;
             hit_normal = near_normal;
         }
-        t_max = t_max.min(t1);
+        if t1 < t_max {
+            t_max = t1;
+            exit_normal = far_normal;
+        }
         if t_min > t_max {
             return None;
         }
     }
 
-    let t = if t_min > EPSILON { t_min } else { t_max };
+    let (t, hit_normal) = if t_min > EPSILON {
+        (t_min, hit_normal)
+    } else {
+        (t_max, exit_normal)
+    };
     if t <= EPSILON {
         return None;
     }
@@ -193,7 +193,7 @@ pub(crate) fn intersect_cube(ray: Ray, min: Vec3, max: Vec3, material: Material)
     })
 }
 
-pub(crate) fn intersect_cylinder(
+fn intersect_cylinder(
     ray: Ray,
     center: Vec3,
     radius: f64,
@@ -207,7 +207,7 @@ pub(crate) fn intersect_cylinder(
     let c = oc.x * oc.x + oc.z * oc.z - radius * radius;
     let mut best: Option<Hit> = None;
 
-    if a.abs() > EPSILON {
+    if a.abs() > 1.0e-12 {
         let discriminant = b * b - 4.0 * a * c;
         if discriminant >= 0.0 {
             let root = discriminant.sqrt();
@@ -234,7 +234,7 @@ pub(crate) fn intersect_cylinder(
         (center.y - half_height, Vec3::new(0.0, -1.0, 0.0)),
         (center.y + half_height, Vec3::new(0.0, 1.0, 0.0)),
     ] {
-        if ray.direction.y.abs() < EPSILON {
+        if ray.direction.y.abs() < 1.0e-12 {
             continue;
         }
         let t = (cap_y - ray.origin.y) / ray.direction.y;
@@ -247,11 +247,7 @@ pub(crate) fn intersect_cylinder(
                 Hit {
                     t,
                     point,
-                    normal: if ray.direction.dot(normal) < 0.0 {
-                        normal
-                    } else {
-                        -normal
-                    },
+                    normal,
                     material,
                 },
             );
@@ -261,7 +257,7 @@ pub(crate) fn intersect_cylinder(
     best
 }
 
-pub(crate) fn nearest_hit(current: Option<Hit>, candidate: Hit) -> Option<Hit> {
+fn nearest_hit(current: Option<Hit>, candidate: Hit) -> Option<Hit> {
     match current {
         Some(hit) if hit.t <= candidate.t => Some(hit),
         _ => Some(candidate),
