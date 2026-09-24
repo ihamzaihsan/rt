@@ -6,6 +6,10 @@ pub(crate) struct Vec3 {
 }
 
 impl Vec3 {
+    pub(crate) fn is_finite(self) -> bool {
+        self.x.is_finite() && self.y.is_finite() && self.z.is_finite()
+    }
+
     pub(crate) const ZERO: Self = Self::new(0.0, 0.0, 0.0);
 
     pub(crate) const fn new(x: f64, y: f64, z: f64) -> Self {

@@ -3,6 +3,7 @@ use crate::{
     geometry::{Material, Object},
     math::Vec3,
 };
+
 #[derive(Clone, Copy)]
 pub(crate) struct Light {
     pub(crate) position: Vec3,
@@ -29,11 +30,13 @@ pub(crate) fn scene_by_name(
     name: &str,
     brightness: Option<f64>,
     camera_override: Option<Vec3>,
-) -> Option<Scene> {
+    target_override: Option<Vec3>,
+    fov_override: Option<f64>,
+) -> Result<Scene, String> {
     match name {
         "sphere" => {
             let camera_pos = camera_override.unwrap_or(Vec3::new(0.0, 1.0, 4.5));
-            Some(Scene {
+            Ok(Scene {
                 objects: vec![
                     Object::Sphere {
                         center: Vec3::new(0.0, 1.0, 0.0),
@@ -53,17 +56,17 @@ pub(crate) fn scene_by_name(
                 }],
                 camera: Camera::look_at(
                     camera_pos,
-                    Vec3::new(0.0, 0.8, 0.0),
+                    target_override.unwrap_or(Vec3::new(0.0, 0.8, 0.0)),
                     Vec3::new(0.0, 1.0, 0.0),
-                    50.0,
-                ),
+                    fov_override.unwrap_or(50.0),
+                )?,
                 background: Vec3::new(0.08, 0.10, 0.14),
                 ambient: 0.12,
             })
         }
         "cube-plane" => {
             let camera_pos = camera_override.unwrap_or(Vec3::new(2.4, 1.8, 5.2));
-            Some(Scene {
+            Ok(Scene {
                 objects: vec![
                     Object::Plane {
                         point: Vec3::new(0.0, -0.55, 0.0),
@@ -83,10 +86,10 @@ pub(crate) fn scene_by_name(
                 }],
                 camera: Camera::look_at(
                     camera_pos,
-                    Vec3::new(0.0, 0.25, 0.0),
+                    target_override.unwrap_or(Vec3::new(0.0, 0.25, 0.0)),
                     Vec3::new(0.0, 1.0, 0.0),
-                    48.0,
-                ),
+                    fov_override.unwrap_or(48.0),
+                )?,
                 background: Vec3::new(0.07, 0.08, 0.10),
                 ambient: 0.10,
             })
@@ -98,7 +101,7 @@ pub(crate) fn scene_by_name(
                 Vec3::new(3.7, 2.4, 5.0)
             };
             let camera_pos = camera_override.unwrap_or(default_camera);
-            Some(Scene {
+            Ok(Scene {
                 objects: vec![
                     Object::Plane {
                         point: Vec3::new(0.0, -0.75, 0.0),
@@ -136,14 +139,16 @@ pub(crate) fn scene_by_name(
                 ],
                 camera: Camera::look_at(
                     camera_pos,
-                    Vec3::new(0.0, 0.0, -0.35),
+                    target_override.unwrap_or(Vec3::new(0.0, 0.0, -0.35)),
                     Vec3::new(0.0, 1.0, 0.0),
-                    50.0,
-                ),
+                    fov_override.unwrap_or(50.0),
+                )?,
                 background: Vec3::new(0.08, 0.09, 0.12),
                 ambient: 0.11,
             })
         }
-        _ => None,
+        _ => Err(format!(
+            "unknown scene '{name}'. Use --help for valid scenes."
+        )),
     }
 }

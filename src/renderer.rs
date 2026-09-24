@@ -87,9 +87,12 @@ pub(crate) fn render<W: Write>(
 
     for y in 0..options.height {
         for x in 0..options.width {
-            let ray = scene
-                .camera
-                .ray_for_pixel(x, y, options.width, options.height);
+            let ray = scene.camera.ray_for_sample(
+                x as f64 + 0.5,
+                y as f64 + 0.5,
+                options.width,
+                options.height,
+            );
             let color = trace_ray(ray, scene, options, 0).clamp01();
             let r = (color.x * 255.0).round() as u8;
             let g = (color.y * 255.0).round() as u8;

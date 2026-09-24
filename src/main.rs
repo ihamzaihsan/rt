@@ -4,6 +4,7 @@ mod geometry;
 mod math;
 mod renderer;
 mod scene;
+
 use cli::{parse_args, print_help};
 use renderer::{RenderOptions, render};
 use scene::scene_by_name;
@@ -18,12 +19,13 @@ fn run() -> Result<(), String> {
         return Ok(());
     }
 
-    let scene = scene_by_name(&args.scene, args.brightness, args.camera).ok_or_else(|| {
-        format!(
-            "unknown scene '{}'. Use --help for valid scenes.",
-            args.scene
-        )
-    })?;
+    let scene = scene_by_name(
+        &args.scene,
+        args.brightness,
+        args.camera,
+        args.target,
+        args.fov,
+    )?;
     let options = RenderOptions {
         width: args.width,
         height: args.height,
