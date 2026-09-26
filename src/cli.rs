@@ -11,6 +11,9 @@ pub(crate) struct Args {
     pub(crate) target: Option<Vec3>,
     pub(crate) fov: Option<f64>,
     pub(crate) reflections: bool,
+    pub(crate) refractions: bool,
+    pub(crate) textures: bool,
+    pub(crate) max_depth: usize,
     pub(crate) help: bool,
 }
 
@@ -29,6 +32,9 @@ pub(crate) fn parse(mut iter: impl Iterator<Item = String>) -> Result<Args, Stri
         target: None,
         fov: None,
         reflections: false,
+        refractions: false,
+        textures: false,
+        max_depth: 5,
         help: false,
     };
     while let Some(arg) = iter.next() {
@@ -41,7 +47,10 @@ pub(crate) fn parse(mut iter: impl Iterator<Item = String>) -> Result<Args, Stri
             "--camera" => args.camera = Some(parse_vec3(&next_value(&mut iter, "--camera")?)?),
             "--target" => args.target = Some(parse_vec3(&next_value(&mut iter, "--target")?)?),
             "--fov" => args.fov = Some(parse_next(&mut iter, "--fov")?),
+            "--max-depth" => args.max_depth = parse_next(&mut iter, "--max-depth")?,
             "--reflections" | "-r" => args.reflections = true,
+            "--refractions" => args.refractions = true,
+            "--textures" | "-t" => args.textures = true,
             "--help" | "-h" => {
                 args.help = true;
                 return Ok(args);
@@ -63,6 +72,9 @@ pub(crate) fn parse(mut iter: impl Iterator<Item = String>) -> Result<Args, Stri
             .is_none_or(|n| n > 16_777_216)
     {
         return Err("dimensions must be 1..16384 with at most 16,777,216 pixels".into());
+    }
+    if !(1..=10).contains(&args.max_depth) {
+        return Err("max-depth must be 1..10".into());
     }
     if args
         .brightness
@@ -129,7 +141,10 @@ Usage: rt [options]\n\n\
   --target <x,y,z>        Camera look-at target\n\
   --fov <degrees>        Vertical field of view, 1 <= fov < 179\n\
   --reflections, -r      Reflective materials\n\
+  --refractions          Glass sphere transmission, including Fresnel reflection\n\
+  --textures, -t         Procedural checker textures\n\
+  --max-depth <count>    Reflection/refraction bounce limit, 1..10 (default: 5)\n\
   --help, -h             Show help\n\n\
-Example: cargo run --release -- --scene all --reflections -o output.ppm"
+Example: cargo run --release -- --scene all --textures --reflections -o output.ppm"
     );
 }

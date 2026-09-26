@@ -6,10 +6,6 @@ pub(crate) struct Vec3 {
 }
 
 impl Vec3 {
-    pub(crate) fn is_finite(self) -> bool {
-        self.x.is_finite() && self.y.is_finite() && self.z.is_finite()
-    }
-
     pub(crate) const ZERO: Self = Self::new(0.0, 0.0, 0.0);
 
     pub(crate) const fn new(x: f64, y: f64, z: f64) -> Self {
@@ -41,12 +37,20 @@ impl Vec3 {
         self - normal * (2.0 * self.dot(normal))
     }
 
-    pub(crate) fn clamp01(self) -> Self {
-        Self::new(
-            self.x.clamp(0.0, 1.0),
-            self.y.clamp(0.0, 1.0),
-            self.z.clamp(0.0, 1.0),
-        )
+    /// Snell's law; `normal` faces the incoming ray and `eta` is incident / transmitted IOR.
+    pub(crate) fn refract(self, normal: Self, eta: f64) -> Option<Self> {
+        let cosine = (-self).dot(normal).clamp(0.0, 1.0);
+        let perpendicular = (self + normal * cosine) * eta;
+        let parallel_squared = 1.0 - perpendicular.dot(perpendicular);
+        if parallel_squared < 0.0 {
+            None // Total internal reflection.
+        } else {
+            Some((perpendicular - normal * parallel_squared.sqrt()).normalize())
+        }
+    }
+
+    pub(crate) fn is_finite(self) -> bool {
+        self.x.is_finite() && self.y.is_finite() && self.z.is_finite()
     }
 }
 

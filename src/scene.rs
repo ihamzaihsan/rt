@@ -1,6 +1,6 @@
 use crate::{
     camera::Camera,
-    geometry::{Material, Object},
+    geometry::{Checker, Material, Object},
     math::Vec3,
 };
 
@@ -23,6 +23,12 @@ pub(crate) fn material(color: Vec3, reflectivity: f64) -> Material {
     Material {
         color,
         reflectivity,
+        transmission: 0.0,
+        ior: 1.5,
+        texture: Some(Checker {
+            alternate: color * 0.3,
+            scale: 2.0,
+        }),
     }
 }
 
@@ -150,5 +156,17 @@ pub(crate) fn scene_by_name(
         _ => Err(format!(
             "unknown scene '{name}'. Use --help for valid scenes."
         )),
+    }
+}
+
+pub(crate) fn add_effects(scene: &mut Scene, refractive: bool) {
+    if refractive {
+        for object in &mut scene.objects {
+            if let Object::Sphere { material, .. } = object {
+                material.transmission = 0.92;
+                material.color = Vec3::new(0.94, 0.98, 1.0);
+                material.texture = None;
+            }
+        }
     }
 }

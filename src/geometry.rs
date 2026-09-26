@@ -6,6 +6,31 @@ const EPSILON: f64 = 1.0e-4;
 pub(crate) struct Material {
     pub(crate) color: Vec3,
     pub(crate) reflectivity: f64,
+    pub(crate) transmission: f64,
+    pub(crate) ior: f64,
+    pub(crate) texture: Option<Checker>,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct Checker {
+    pub(crate) alternate: Vec3,
+    pub(crate) scale: f64,
+}
+
+impl Material {
+    pub(crate) fn color_at(self, point: Vec3, textured: bool) -> Vec3 {
+        if textured {
+            if let Some(checker) = self.texture {
+                let cell = (point.x * checker.scale).floor()
+                    + (point.y * checker.scale).floor()
+                    + (point.z * checker.scale).floor();
+                if cell.rem_euclid(2.0) >= 1.0 {
+                    return checker.alternate;
+                }
+            }
+        }
+        self.color
+    }
 }
 
 #[derive(Clone, Copy)]

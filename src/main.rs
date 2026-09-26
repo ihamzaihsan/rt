@@ -7,7 +7,7 @@ mod scene;
 
 use cli::{parse_args, print_help};
 use renderer::{RenderOptions, render};
-use scene::scene_by_name;
+use scene::{add_effects, scene_by_name};
 use std::fs::File;
 use std::io::{self, BufWriter};
 use std::process;
@@ -19,18 +19,21 @@ fn run() -> Result<(), String> {
         return Ok(());
     }
 
-    let scene = scene_by_name(
+    let mut scene = scene_by_name(
         &args.scene,
         args.brightness,
         args.camera,
         args.target,
         args.fov,
     )?;
+    add_effects(&mut scene, args.refractions);
     let options = RenderOptions {
         width: args.width,
         height: args.height,
         reflections: args.reflections,
-        max_depth: 3,
+        refractions: args.refractions,
+        textures: args.textures,
+        max_depth: args.max_depth,
     };
 
     match args.output {
