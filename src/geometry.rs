@@ -63,6 +63,10 @@ pub(crate) enum Object {
         height: f64,
         material: Material,
     },
+    Fluid {
+        surface: crate::effects::FluidSurface,
+        material: Material,
+    },
 }
 
 impl Object {
@@ -85,6 +89,7 @@ impl Object {
                 height,
                 material,
             } => intersect_cylinder(ray, center, radius, height, material),
+            Object::Fluid { surface, material } => surface.intersect(ray, material),
         }
     }
 }

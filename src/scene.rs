@@ -159,7 +159,14 @@ pub(crate) fn scene_by_name(
     }
 }
 
-pub(crate) fn add_effects(scene: &mut Scene, refractive: bool) {
+/// Attach opt-in effects without changing the four original scene layouts.
+pub(crate) fn add_effects(
+    scene: &mut Scene,
+    refractive: bool,
+    particle_effect: bool,
+    fluid: bool,
+    time: f64,
+) {
     if refractive {
         for object in &mut scene.objects {
             if let Object::Sphere { material, .. } = object {
@@ -168,5 +175,43 @@ pub(crate) fn add_effects(scene: &mut Scene, refractive: bool) {
                 material.texture = None;
             }
         }
+    }
+    let floor = scene
+        .objects
+        .iter()
+        .find_map(|object| {
+            if let Object::Plane { point, normal, .. } = object {
+                if normal.x.abs() < 1.0e-12 && normal.z.abs() < 1.0e-12 && normal.y.abs() > 1.0e-12
+                {
+                    return Some(point.y);
+                }
+            }
+            None
+        })
+        .unwrap_or(0.0);
+    if particle_effect {
+        let mut droplet = material(Vec3::new(0.12, 0.65, 0.92), 0.3);
+        droplet.texture = None;
+        scene.objects.extend(crate::effects::particles(
+            time,
+            Vec3::new(0.0, floor + 0.3, 0.6),
+            droplet,
+        ));
+    }
+    if fluid {
+        let mut water = material(Vec3::new(0.05, 0.32, 0.48), 0.55);
+        water.texture = None;
+        water.ior = 1.333;
+        water.transmission = if refractive { 0.7 } else { 0.0 };
+        scene.objects.push(Object::Fluid {
+            surface: crate::effects::FluidSurface {
+                min: Vec3::new(-3.0, 0.0, -3.0),
+                max: Vec3::new(3.0, 0.0, 2.5),
+                level: floor + 0.22,
+                amplitude: 0.07,
+                time,
+            },
+            material: water,
+        });
     }
 }

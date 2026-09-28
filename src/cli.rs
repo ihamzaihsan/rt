@@ -13,6 +13,9 @@ pub(crate) struct Args {
     pub(crate) reflections: bool,
     pub(crate) refractions: bool,
     pub(crate) textures: bool,
+    pub(crate) particles: bool,
+    pub(crate) fluids: bool,
+    pub(crate) time: f64,
     pub(crate) max_depth: usize,
     pub(crate) help: bool,
 }
@@ -34,6 +37,9 @@ pub(crate) fn parse(mut iter: impl Iterator<Item = String>) -> Result<Args, Stri
         reflections: false,
         refractions: false,
         textures: false,
+        particles: false,
+        fluids: false,
+        time: 0.0,
         max_depth: 5,
         help: false,
     };
@@ -48,9 +54,12 @@ pub(crate) fn parse(mut iter: impl Iterator<Item = String>) -> Result<Args, Stri
             "--target" => args.target = Some(parse_vec3(&next_value(&mut iter, "--target")?)?),
             "--fov" => args.fov = Some(parse_next(&mut iter, "--fov")?),
             "--max-depth" => args.max_depth = parse_next(&mut iter, "--max-depth")?,
+            "--time" => args.time = parse_next(&mut iter, "--time")?,
             "--reflections" | "-r" => args.reflections = true,
             "--refractions" => args.refractions = true,
             "--textures" | "-t" => args.textures = true,
+            "--particles" => args.particles = true,
+            "--fluids" => args.fluids = true,
             "--help" | "-h" => {
                 args.help = true;
                 return Ok(args);
@@ -87,6 +96,9 @@ pub(crate) fn parse(mut iter: impl Iterator<Item = String>) -> Result<Args, Stri
         .is_some_and(|n| !n.is_finite() || !(1.0..179.0).contains(&n))
     {
         return Err("fov must be at least 1 and less than 179 degrees".into());
+    }
+    if !args.time.is_finite() || !(0.0..=1_000_000.0).contains(&args.time) {
+        return Err("time must be finite and between 0 and 1,000,000 seconds".into());
     }
     Ok(args)
 }
@@ -141,8 +153,11 @@ Usage: rt [options]\n\n\
   --target <x,y,z>        Camera look-at target\n\
   --fov <degrees>        Vertical field of view, 1 <= fov < 179\n\
   --reflections, -r      Reflective materials\n\
-  --refractions          Glass sphere transmission, including Fresnel reflection\n\
+  --refractions          Glass sphere and water transmission, including Fresnel reflection\n\
   --textures, -t         Procedural checker textures\n\
+  --particles            Add 32 ballistic particles\n\
+  --fluids               Add a procedural water surface\n\
+  --time <seconds>       Particle and wave snapshot time (default: 0)\n\
   --max-depth <count>    Reflection/refraction bounce limit, 1..10 (default: 5)\n\
   --help, -h             Show help\n\n\
 Example: cargo run --release -- --scene all --textures --reflections -o output.ppm"

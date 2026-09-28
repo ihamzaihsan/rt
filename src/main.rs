@@ -1,5 +1,6 @@
 mod camera;
 mod cli;
+mod effects;
 mod geometry;
 mod math;
 mod renderer;
@@ -26,7 +27,13 @@ fn run() -> Result<(), String> {
         args.target,
         args.fov,
     )?;
-    add_effects(&mut scene, args.refractions);
+    add_effects(
+        &mut scene,
+        args.refractions,
+        args.particles,
+        args.fluids,
+        args.time,
+    );
     let options = RenderOptions {
         width: args.width,
         height: args.height,
