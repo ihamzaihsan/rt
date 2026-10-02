@@ -16,6 +16,8 @@ pub(crate) struct Args {
     pub(crate) particles: bool,
     pub(crate) fluids: bool,
     pub(crate) time: f64,
+    pub(crate) samples: usize,
+    pub(crate) threads: usize,
     pub(crate) max_depth: usize,
     pub(crate) help: bool,
 }
@@ -40,6 +42,8 @@ pub(crate) fn parse(mut iter: impl Iterator<Item = String>) -> Result<Args, Stri
         particles: false,
         fluids: false,
         time: 0.0,
+        samples: 1,
+        threads: std::thread::available_parallelism().map_or(1, |n| n.get().min(64)),
         max_depth: 5,
         help: false,
     };
@@ -53,6 +57,8 @@ pub(crate) fn parse(mut iter: impl Iterator<Item = String>) -> Result<Args, Stri
             "--camera" => args.camera = Some(parse_vec3(&next_value(&mut iter, "--camera")?)?),
             "--target" => args.target = Some(parse_vec3(&next_value(&mut iter, "--target")?)?),
             "--fov" => args.fov = Some(parse_next(&mut iter, "--fov")?),
+            "--samples" => args.samples = parse_next(&mut iter, "--samples")?,
+            "--threads" => args.threads = parse_next(&mut iter, "--threads")?,
             "--max-depth" => args.max_depth = parse_next(&mut iter, "--max-depth")?,
             "--time" => args.time = parse_next(&mut iter, "--time")?,
             "--reflections" | "-r" => args.reflections = true,
@@ -81,6 +87,12 @@ pub(crate) fn parse(mut iter: impl Iterator<Item = String>) -> Result<Args, Stri
             .is_none_or(|n| n > 16_777_216)
     {
         return Err("dimensions must be 1..16384 with at most 16,777,216 pixels".into());
+    }
+    if !(1..=8).contains(&args.samples) {
+        return Err("samples must be 1..8 per axis".into());
+    }
+    if !(1..=64).contains(&args.threads) {
+        return Err("threads must be 1..64".into());
     }
     if !(1..=10).contains(&args.max_depth) {
         return Err("max-depth must be 1..10".into());
@@ -158,6 +170,8 @@ Usage: rt [options]\n\n\
   --particles            Add 32 ballistic particles\n\
   --fluids               Add a procedural water surface\n\
   --time <seconds>       Particle and wave snapshot time (default: 0)\n\
+  --samples <count>      Grid samples per axis, 1..8 (default: 1)\n\
+  --threads <count>      Workers, 1..64 (default: logical CPU count, capped at 64)\n\
   --max-depth <count>    Reflection/refraction bounce limit, 1..10 (default: 5)\n\
   --help, -h             Show help\n\n\
 Example: cargo run --release -- --scene all --textures --reflections -o output.ppm"

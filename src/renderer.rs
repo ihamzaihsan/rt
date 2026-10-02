@@ -14,6 +14,8 @@ pub(crate) struct RenderOptions {
     pub(crate) refractions: bool,
     pub(crate) textures: bool,
     pub(crate) max_depth: usize,
+    pub(crate) samples: usize,
+    pub(crate) threads: usize,
 }
 
 fn trace_ray(ray: Ray, scene: &Scene, options: &RenderOptions, depth: usize) -> Vec3 {
@@ -138,25 +140,70 @@ fn sky_color(direction: Vec3, base: Vec3) -> Vec3 {
     base * (1.0 - t) + Vec3::new(0.68, 0.78, 0.95) * t
 }
 
+fn pixel(scene: &Scene, options: &RenderOptions, x: usize, y: usize) -> [u8; 3] {
+    let mut color = Vec3::ZERO;
+    for sy in 0..options.samples {
+        for sx in 0..options.samples {
+            let x = x as f64 + (sx as f64 + 0.5) / options.samples as f64;
+            let y = y as f64 + (sy as f64 + 0.5) / options.samples as f64;
+            color += trace_ray(
+                scene
+                    .camera
+                    .ray_for_sample(x, y, options.width, options.height),
+                scene,
+                options,
+                0,
+            );
+        }
+    }
+    let color = color / (options.samples * options.samples) as f64;
+    // Average in linear space, then tone-map highlights and encode for display.
+    [color.x, color.y, color.z].map(|channel| {
+        let linear = channel.max(0.0);
+        let mapped = linear / (1.0 + linear);
+        (mapped.powf(1.0 / 2.2) * 255.0).round() as u8
+    })
+}
+
 pub(crate) fn render<W: Write>(
     scene: &Scene,
     options: &RenderOptions,
     mut writer: W,
 ) -> io::Result<()> {
-    writeln!(writer, "P3\n{} {}\n255", options.width, options.height)?;
-    for y in 0..options.height {
-        for x in 0..options.width {
-            let ray = scene.camera.ray_for_sample(
-                x as f64 + 0.5,
-                y as f64 + 0.5,
-                options.width,
-                options.height,
-            );
-            let color = trace_ray(ray, scene, options, 0);
-            let [r, g, b] = [color.x, color.y, color.z]
-                .map(|channel| (channel.clamp(0.0, 1.0) * 255.0).round() as u8);
-            writeln!(writer, "{r} {g} {b}")?;
+    let count = options.width * options.height;
+    let mut pixels = Vec::new();
+    pixels
+        .try_reserve_exact(count)
+        .map_err(|e| io::Error::other(format!("cannot allocate image: {e}")))?;
+    pixels.resize(count, [0u8; 3]);
+    let rows_per_worker = options.height.div_ceil(options.threads);
+    let chunk_size = rows_per_worker * options.width;
+    std::thread::scope(|scope| -> io::Result<()> {
+        let mut workers = Vec::new();
+        for (index, chunk) in pixels.chunks_mut(chunk_size).enumerate() {
+            let first_y = index * rows_per_worker;
+            let worker = std::thread::Builder::new().spawn_scoped(scope, move || {
+                for (offset, output) in chunk.iter_mut().enumerate() {
+                    *output = pixel(
+                        scene,
+                        options,
+                        offset % options.width,
+                        first_y + offset / options.width,
+                    );
+                }
+            })?;
+            workers.push(worker);
         }
+        for worker in workers {
+            worker
+                .join()
+                .map_err(|_| io::Error::other("render worker panicked"))?;
+        }
+        Ok(())
+    })?;
+    writeln!(writer, "P3\n{} {}\n255", options.width, options.height)?;
+    for [r, g, b] in pixels {
+        writeln!(writer, "{r} {g} {b}")?;
     }
     writer.flush()
 }

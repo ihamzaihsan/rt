@@ -41,6 +41,8 @@ fn run() -> Result<(), String> {
         refractions: args.refractions,
         textures: args.textures,
         max_depth: args.max_depth,
+        samples: args.samples,
+        threads: args.threads,
     };
 
     match args.output {
