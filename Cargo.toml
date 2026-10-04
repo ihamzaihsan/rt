@@ -2,6 +2,9 @@
 name = "rt"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.85"
+description = "RT: Rust Ray Tracer — a dependency-free CPU renderer with procedural effects"
+readme = "README.md"
 
 [profile.release]
 codegen-units = 1

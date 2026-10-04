@@ -154,7 +154,7 @@ fn parse_vec3(value: &str) -> Result<Vec3, String> {
 
 pub(crate) fn print_help() {
     println!(
-        "rt\n\
+        "RT: Rust Ray Tracer\n\
 Usage: rt [options]\n\n\
   --scene <name>          sphere | cube-plane | all | all-alt (default: sphere)\n\
   --width <pixels>        Width (default: 800)\n\
