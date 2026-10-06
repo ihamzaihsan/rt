@@ -1,0 +1,40 @@
+name: Rust checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: ${{ matrix.os }} / Rust ${{ matrix.rust }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rust: stable
+          - os: windows-latest
+            rust: stable
+          - os: macos-latest
+            rust: stable
+          - os: ubuntu-latest
+            rust: '1.85.0'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install Rust toolchain
+        run: rustup toolchain install ${{ matrix.rust }} --profile minimal --component rustfmt --component clippy
+      - name: Check formatting
+        run: cargo +${{ matrix.rust }} fmt --all -- --check
+      - name: Lint
+        run: cargo +${{ matrix.rust }} clippy --all-targets --locked -- -D warnings
+      - name: Run existing unit tests
+        run: cargo +${{ matrix.rust }} test --locked
+      - name: Build release binary
+        run: cargo +${{ matrix.rust }} build --release --locked

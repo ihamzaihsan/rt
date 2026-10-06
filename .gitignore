@@ -7,3 +7,8 @@
 !/scenes/cube-plane.ppm
 !/scenes/all.ppm
 !/scenes/all-alt.ppm
+
+# Temporary evaluation inputs supplied for the repository review.
+/Project-Specs.md
+/audit.md
+/raytrace.png

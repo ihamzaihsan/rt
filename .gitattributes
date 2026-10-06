@@ -1,0 +1,4 @@
+* text=auto eol=lf
+*.png binary
+# Keep required ASCII images portable, without enormous line-by-line diffs.
+*.ppm text eol=lf -diff
